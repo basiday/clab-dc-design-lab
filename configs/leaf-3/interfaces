@@ -28,3 +28,29 @@ iface swp2
     alias to spine-2:swp3
     address 10.0.2.5/31
     mtu 9216
+
+# --- mlag peerlink ---
+auto swp10
+iface swp10
+    alias peerlink to leaf-4:swp10
+    mtu 9216
+
+auto swp11
+iface swp11
+    alias peerlink to leaf-4:swp11
+    mtu 9216
+
+auto peerlink
+iface peerlink
+    bond-slaves swp10 swp11
+    bond-mode 802.3ad
+    bond-lacp-rate 1
+    mtu 9216
+
+auto peerlink.4094
+iface peerlink.4094
+    clagd-peer-ip linklocal
+    clagd-backup-ip 10.255.1.4
+    clagd-sys-mac 44:38:39:ff:01:34
+    clagd-priority 1000
+    mtu 9216
