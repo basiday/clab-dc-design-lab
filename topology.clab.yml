@@ -1,0 +1,34 @@
+name: evpn
+
+mgmt:
+  network: clab-oob
+  ipv4-subnet: 172.20.20.0/24
+
+topology:
+  kinds:
+    nvidia_cumulusvx:
+      image: vrnetlab/nvidia_cumulus-vx:5.12.1
+
+  nodes:
+    spine-1: {kind: nvidia_cumulusvx, mgmt-ipv4: 172.20.20.11}
+    spine-2: {kind: nvidia_cumulusvx, mgmt-ipv4: 172.20.20.12}
+    leaf-1:  {kind: nvidia_cumulusvx, mgmt-ipv4: 172.20.20.21}
+    leaf-2:  {kind: nvidia_cumulusvx, mgmt-ipv4: 172.20.20.22}
+    leaf-3:  {kind: nvidia_cumulusvx, mgmt-ipv4: 172.20.20.23}
+    leaf-4:  {kind: nvidia_cumulusvx, mgmt-ipv4: 172.20.20.24}
+
+
+  links:
+    # spine-1
+    - endpoints: ["spine-1:swp1", "leaf-1:swp1"]
+    - endpoints: ["spine-1:swp2", "leaf-2:swp1"]
+    - endpoints: ["spine-1:swp3", "leaf-3:swp1"]
+    - endpoints: ["spine-1:swp4", "leaf-4:swp1"]
+    # spine-2
+    - endpoints: ["spine-2:swp1", "leaf-1:swp2"]
+    - endpoints: ["spine-2:swp2", "leaf-2:swp2"]
+    - endpoints: ["spine-2:swp3", "leaf-3:swp2"]
+    - endpoints: ["spine-2:swp4", "leaf-4:swp2"]
+    # malg peerlink leaf-3 <> leaf-4 
+    - endpoints: ["leaf-3:swp10", "leaf-4:swp10"]
+    - endpoints: ["leaf-3:swp11", "leaf-4:swp11"]
