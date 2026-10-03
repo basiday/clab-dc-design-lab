@@ -1,0 +1,42 @@
+# spine-2
+
+auto lo
+iface lo inet loopback
+    address 10.255.0.2/32
+
+auto mgmt
+iface mgmt
+    address 127.0.0.1/8
+    address 127.0.1.1/8
+    address ::1/128
+    vrf-table auto
+
+auto eth0
+iface eth0 inet dhcp
+    ip-forward off
+    ip6-forward off
+    vrf mgmt
+
+auto swp1
+iface swp1
+    alias to leaf-1:swp2
+    address 10.0.2.0/31
+    mtu 9216
+
+auto swp2
+iface swp2
+    alias to leaf-2:swp2
+    address 10.0.2.2/31
+    mtu 9216
+
+auto swp3
+iface swp3
+    alias to leaf-3:swp2
+    address 10.0.2.4/31
+    mtu 9216
+
+auto swp4
+iface swp4
+    alias to leaf-4:swp2
+    address 10.0.2.6/31
+    mtu 9216
