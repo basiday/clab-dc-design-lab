@@ -1,3 +1,7 @@
+## Схема
+
+[drawio схема](topology.drawio)
+
 ## План IP-адресации
 
 | prefix | description |
