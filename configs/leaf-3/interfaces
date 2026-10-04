@@ -3,6 +3,7 @@
 auto lo
 iface lo inet loopback
     address 10.255.1.3/32
+    vxlan-local-tunnelip 10.255.1.3
 
 auto mgmt
 iface mgmt
