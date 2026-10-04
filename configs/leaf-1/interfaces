@@ -81,3 +81,51 @@ iface vxlan4094
     bridge-learning off
     bridge-arp-nd-suppress on
     mtu 9000
+
+auto VRF-CL1
+iface VRF-CL1
+    vrf-table auto
+
+auto VRF-CL2
+iface VRF-CL2
+    vrf-table auto
+
+auto vlan10
+iface vlan10
+    alias VRF-CL1 10
+    address 10.10.10.251/24
+    address-virtual 00:00:5e:00:01:01 10.10.10.1/24
+    vrf VRF-CL1
+    vlan-raw-device br_default
+    vlan-id 10
+    mtu 9000
+
+auto vlan20
+iface vlan20
+    alias VRF-CL1 20
+    address 10.10.20.251/24
+    address-virtual 00:00:5e:00:01:01 10.10.20.1/24
+    vrf VRF-CL1
+    vlan-raw-device br_default
+    vlan-id 20
+    mtu 1500
+
+auto vlan110
+iface vlan110
+    alias VRF-CL2 110
+    address 10.10.10.251/24
+    address-virtual 00:00:5e:00:01:01 10.10.10.1/24
+    vrf VRF-CL2
+    vlan-raw-device br_default
+    vlan-id 110
+    mtu 1500
+
+auto vlan120
+iface vlan120
+    alias VRF-CL2 120
+    address 10.10.20.251/24
+    address-virtual 00:00:5e:00:01:01 10.10.20.1/24
+    vrf VRF-CL2
+    vlan-raw-device br_default
+    vlan-id 120
+    mtu 1500
