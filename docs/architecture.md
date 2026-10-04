@@ -11,3 +11,5 @@
 | 10.0.1.0/24 | p2p /31 spine-1 > leaf |
 | 10.0.2.0/24 | p2p /31 spine-2 > leaf |
 | 172.20.20.0/24 | OOB management |
+| 10.10.10.0/24 | both cliets network |
+| 10.10.20.0/24 | both cliets network |

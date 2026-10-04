@@ -8,6 +8,8 @@ topology:
   kinds:
     nvidia_cumulusvx:
       image: vrnetlab/nvidia_cumulus-vx:5.12.1
+    linux:
+      image: nicolaka/netshoot:v0.13
 
   nodes:
     spine-1: {kind: nvidia_cumulusvx, mgmt-ipv4: 172.20.20.11}
@@ -17,6 +19,15 @@ topology:
     leaf-3:  {kind: nvidia_cumulusvx, mgmt-ipv4: 172.20.20.23}
     leaf-4:  {kind: nvidia_cumulusvx, mgmt-ipv4: 172.20.20.24}
 
+    # clients
+    cl1-h1: {kind: linux, mgmt-ipv4: 172.20.20.100, binds: [configs/cl1-h1/setup.sh:/setup.sh], exec: [sh /setup.sh]}
+    cl1-h2: {kind: linux, mgmt-ipv4: 172.20.20.101, binds: [configs/cl1-h2/setup.sh:/setup.sh], exec: [sh /setup.sh]}
+    cl1-h3: {kind: linux, mgmt-ipv4: 172.20.20.102, binds: [configs/cl1-h3/setup.sh:/setup.sh], exec: [sh /setup.sh]}
+    cl1-h4: {kind: linux, mgmt-ipv4: 172.20.20.103, binds: [configs/cl1-h4/setup.sh:/setup.sh], exec: [sh /setup.sh]}
+    cl2-h1: {kind: linux, mgmt-ipv4: 172.20.20.110, binds: [configs/cl2-h1/setup.sh:/setup.sh], exec: [sh /setup.sh]}
+    cl2-h2: {kind: linux, mgmt-ipv4: 172.20.20.111, binds: [configs/cl2-h2/setup.sh:/setup.sh], exec: [sh /setup.sh]}
+    cl2-h3: {kind: linux, mgmt-ipv4: 172.20.20.112, binds: [configs/cl2-h3/setup.sh:/setup.sh], exec: [sh /setup.sh]}
+    cl2-h4: {kind: linux, mgmt-ipv4: 172.20.20.113, binds: [configs/cl2-h4/setup.sh:/setup.sh], exec: [sh /setup.sh]}
 
   links:
     # spine-1
@@ -32,3 +43,18 @@ topology:
     # malg peerlink leaf-3 <> leaf-4 
     - endpoints: ["leaf-3:swp10", "leaf-4:swp10"]
     - endpoints: ["leaf-3:swp11", "leaf-4:swp11"]
+    # clinets
+    ## 1 segment vlan10
+    - endpoints: ["leaf-1:swp3", "cl1-h1:eth1"]
+    - endpoints: ["leaf-3:swp3", "cl1-h3:eth1"]
+    ## 2 segment vlan 20 (mh/mlag)
+    - endpoints: ["leaf-1:swp4", "cl1-h2:eth1"]   # mh
+    - endpoints: ["leaf-2:swp4", "cl1-h2:eth2"]   # mh
+    - endpoints: ["leaf-3:swp4", "cl1-h4:eth1"]   # malg
+    - endpoints: ["leaf-4:swp4", "cl1-h4:eth2"]   # mlag
+    ## 3 segment vlan 110
+    - endpoints: ["leaf-1:swp5", "cl2-h1:eth1"]
+    - endpoints: ["leaf-3:swp5", "cl2-h3:eth1"]
+    ## 4 segment vlan 120
+    - endpoints: ["leaf-2:swp5", "cl2-h2:eth1"]
+    - endpoints: ["leaf-4:swp5", "cl2-h4:eth1"]

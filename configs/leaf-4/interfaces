@@ -54,3 +54,38 @@ iface peerlink.4094
     clagd-sys-mac 44:38:39:ff:01:34
     clagd-priority 2000
     mtu 9216
+
+#####
+
+auto swp4
+iface swp4
+    alias cl1-h4:eth2
+    mtu 9000
+
+auto bond1
+iface bond1
+    bond-slaves swp4
+    bond-mode 802.3ad
+    bond-lacp-rate 1
+    bond-lacp-bypass-allow no
+    clag-id 1
+    bridge-access 20
+    mtu 9000
+    mstpctl-portadminedge yes
+    mstpctl-bpduguard yes
+
+auto swp5
+iface swp5
+    alias cl2-h4:eth1
+    mtu 9000
+    bridge-access 120
+    mstpctl-portadminedge yes
+    mstpctl-bpduguard yes
+
+auto br_default
+iface br_default
+    bridge-ports bond1 peerlink swp5
+    bridge-vlan-aware yes
+    bridge-vids 10 20 110 120
+    bridge-pvid 1
+    mtu 9000
