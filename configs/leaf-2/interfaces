@@ -59,8 +59,16 @@ iface swp5
 
 auto br_default
 iface br_default
-    bridge-ports bond1 swp5
+    bridge-ports bond1 swp5 vxlan4094
     bridge-vlan-aware yes
     bridge-vids 10 20 110 120
     bridge-pvid 1
+    mtu 9000
+
+auto vxlan4094
+iface vxlan4094
+    bridge-vlan-vni-map 10=10010 20=10020 110=10110 120=10120
+    bridge-vids 10 20 110 120
+    bridge-learning off
+    bridge-arp-nd-suppress on
     mtu 9000
