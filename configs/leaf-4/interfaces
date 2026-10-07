@@ -88,14 +88,14 @@ auto br_default
 iface br_default
     bridge-ports bond1 peerlink swp5 vxlan4094
     bridge-vlan-aware yes
-    bridge-vids 10 20 110 120
+    bridge-vids 10 20 110 120 4001 4002
     bridge-pvid 1
     mtu 9000
 
 auto vxlan4094
 iface vxlan4094
-    bridge-vlan-vni-map 10=10010 20=10020 110=10110 120=10120
-    bridge-vids 10 20 110 120
+    bridge-vlan-vni-map 10=10010 20=10020 110=10110 120=10120 4001=4001 4002=4002
+    bridge-vids 10 20 110 120 4001 4002
     bridge-learning off
     bridge-arp-nd-suppress on
     mtu 9000
@@ -147,3 +147,21 @@ iface vlan120
     vlan-raw-device br_default
     vlan-id 120
     mtu 1500
+
+auto vlan4001
+iface vlan4001
+    alias L3VNI VRF-CL1
+    hwaddress 44:38:39:ff:01:34
+    vrf VRF-CL1
+    vlan-raw-device br_default
+    vlan-id 4001
+    mtu 9000
+
+auto vlan4002
+iface vlan4002
+    alias L3VNI VRF-CL2
+    hwaddress 44:38:39:ff:01:34
+    vrf VRF-CL2
+    vlan-raw-device br_default
+    vlan-id 4002
+    mtu 9000
