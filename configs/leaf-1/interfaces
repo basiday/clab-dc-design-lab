@@ -66,6 +66,26 @@ iface swp5
     mstpctl-portadminedge yes
     mstpctl-bpduguard yes
 
+# --- border: bgw ---
+auto swp6
+iface swp6
+    alias border to bgw:eth1
+    mtu 9216
+
+auto swp6.101
+iface swp6.101
+    alias bgw VRF-CL1
+    address 172.16.1.0/31
+    vrf VRF-CL1
+    mtu 1500
+
+auto swp6.102
+iface swp6.102
+    alias bgw VRF-CL2
+    address 172.16.2.0/31
+    vrf VRF-CL2
+    mtu 1500
+
 auto br_default
 iface br_default
     bridge-ports bond1 swp3 swp5 vxlan4094

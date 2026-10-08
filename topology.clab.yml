@@ -19,6 +19,18 @@ topology:
     leaf-3:  {kind: nvidia_cumulusvx, mgmt-ipv4: 172.20.20.23}
     leaf-4:  {kind: nvidia_cumulusvx, mgmt-ipv4: 172.20.20.24}
 
+    bgw:
+      kind: linux
+      image: quay.io/frrouting/frr:10.2.1
+      mgmt-ipv4: 172.20.20.31
+      binds:
+        - configs/bgw/daemons:/etc/frr/daemons
+        - configs/bgw/frr.conf:/etc/frr/frr.conf
+        - configs/bgw/vtysh.conf:/etc/frr/vtysh.conf
+        - configs/bgw/setup.sh:/setup.sh
+      exec:
+        - sh /setup.sh
+
     # clients
     cl1-h1: {kind: linux, mgmt-ipv4: 172.20.20.100, binds: [configs/cl1-h1/setup.sh:/setup.sh], exec: [sh /setup.sh]}
     cl1-h2: {kind: linux, mgmt-ipv4: 172.20.20.101, binds: [configs/cl1-h2/setup.sh:/setup.sh], exec: [sh /setup.sh]}
@@ -58,3 +70,5 @@ topology:
     ## 4 segment vlan 120
     - endpoints: ["leaf-2:swp5", "cl2-h2:eth1"]
     - endpoints: ["leaf-4:swp5", "cl2-h4:eth1"]
+    ## border
+    - endpoints: ["leaf-1:swp6", "bgw:eth1"]
