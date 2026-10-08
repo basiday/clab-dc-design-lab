@@ -114,6 +114,38 @@ mtu_fabric() { # uplink/spine/peerlink — 9216
   return $r
 }
 
+# --- QoS ---
+tos_inherit() { local n; for n in "${LEAVES[@]}"; do sw "$n" 'ip -d link show vxlan4094' | grep 'tos inherit' >/dev/null || { echo "$n"; return 1; }; done; }
+band_pkts() { # node "ifaces" classid — сумма пакетов в классе prio
+  local n=$1 i v total=0
+  for i in $2; do
+    v=$(sw "$n" "tc -s class show dev $i" | awk -v c="$3" '$2=="prio" && $3==c {f=1} f && /Sent/ {print $4; exit}')
+    total=$((total + ${v:-0}))
+  done; echo "$total"
+}
+ef_spines() { echo $(( $(band_pkts spine-1 "swp3 swp4" 1:2) + $(band_pkts spine-2 "swp3 swp4" 1:2) )); }
+qos_ef() { # EF cl1-h1 -> cl1-h3 попадает в band 1:2 на uplink leaf-1 и на spine (к leaf-3/4: anycast VTEP)
+  local l0 s0 l1 s1
+  l0=$(band_pkts leaf-1 "swp1 swp2" 1:2); s0=$(ef_spines)
+  hx cl1-h1 "ping -c 50 -i 0.01 -Q 0xb8 -q 10.10.10.14" >/dev/null
+  l1=$(band_pkts leaf-1 "swp1 swp2" 1:2); s1=$(ef_spines)
+  echo "leaf-1 uplinks EF: +$((l1 - l0)), spines->leaf-3/4 EF: +$((s1 - s0))"
+  (( l1 - l0 >= 50 && s1 - s0 >= 50 ))
+}
+capture_while_ping() { # node "tcpdump-args" — tcpdump на узле, пока cl1-h1 шлёт EF в vlan10
+  local out; out=$(mktemp)
+  sw "$1" "timeout 6 tcpdump -c 3 -nn $2" >"$out" 2>&1 &
+  sleep 2; hx cl1-h1 "ping -c 20 -i 0.05 -Q 0xb8 -q 10.10.10.14" >/dev/null; wait
+  cat "$out"; rm -f "$out"
+}
+host_pcp()   { capture_while_ping leaf-1 "-ei swp3 'vlan 10 and icmp'" | grep 'vlan 10, p 5' >/dev/null; }
+outer_dscp() { # ECMP: пакет может уйти через любой spine — проверяем оба
+  local sp ok=1
+  for sp in "${SPINES[@]}"; do
+    capture_while_ping "$sp" "-i any -v 'udp port 4789 and ip[1]&0xfc==0xb8'" | grep 'tos 0xb8' >/dev/null && ok=0
+  done; return $ok
+}
+
 # ---------- checks ----------
 section "Готовность (protodown после старта)"
 wait_ready || FAILED=$((FAILED + 1))
@@ -186,6 +218,12 @@ check "leaf-1: 10.10.20.12 в VRF-CL2 = MAC cl2-h4" neigh_mac leaf-1 VRF-CL2 10.
 section "MTU"
 check "Транзит (spine, uplink, peerlink) MTU 9216"             mtu_fabric
 check "Jumbo vlan10: cl1-h1 -> cl1-h3 8972 B с DF через VXLAN" hx cl1-h1 "ping -c 3 -i 0.2 -W 1 -M do -s 8972 10.10.10.14"
+
+section "QoS: DSCP / CoS / Linux TC"
+check "Хост cl1-h1: EF -> PCP 5 в теге vlan10 (leaf-1 swp3)" host_pcp
+check "VXLAN: tos inherit на vxlan4094 (все leaf)"           tos_inherit
+check "Внешний заголовок VXLAN на spine несёт DSCP EF"       outer_dscp
+check "EF в приоритетной очереди 1:2 (leaf-1 uplink и spine)" qos_ef
 
 printf '\n'
 if [[ $FAILED -eq 0 ]]; then printf '\e[32mВсе проверки пройдены\e[0m\n'; else printf '\e[31mПровалено: %d\e[0m\n' "$FAILED"; fi

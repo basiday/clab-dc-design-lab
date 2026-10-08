@@ -21,12 +21,14 @@ iface eth0 inet dhcp
 
 auto swp1
 iface swp1
+    post-up /usr/local/sbin/fabric-qos.sh $IFACE
     alias to spine-1:swp3
     address 10.0.1.5/31
     mtu 9216
 
 auto swp2
 iface swp2
+    post-up /usr/local/sbin/fabric-qos.sh $IFACE
     alias to spine-2:swp3
     address 10.0.2.5/31
     mtu 9216
@@ -34,11 +36,13 @@ iface swp2
 # --- mlag peerlink ---
 auto swp10
 iface swp10
+    post-up /usr/local/sbin/fabric-qos.sh $IFACE
     alias peerlink to leaf-4:swp10
     mtu 9216
 
 auto swp11
 iface swp11
+    post-up /usr/local/sbin/fabric-qos.sh $IFACE
     alias peerlink to leaf-4:swp11
     mtu 9216
 
@@ -61,6 +65,7 @@ iface peerlink.4094
 
 auto swp3
 iface swp3
+    post-up /usr/local/sbin/fabric-qos.sh $IFACE
     alias cl1-h3:eth1
     mtu 9000
     bridge-vids 10
@@ -70,6 +75,7 @@ iface swp3
 
 auto swp4
 iface swp4
+    post-up /usr/local/sbin/fabric-qos.sh $IFACE
     alias cl1-h4:eth1
     mtu 9000
 
@@ -87,6 +93,7 @@ iface bond1
 
 auto swp5
 iface swp5
+    post-up /usr/local/sbin/fabric-qos.sh $IFACE
     alias cl2-h3:eth1
     mtu 9000
     bridge-access 110
@@ -108,6 +115,9 @@ iface vxlan4094
     bridge-learning off
     bridge-arp-nd-suppress on
     mtu 9000
+    # DSCP внутреннего пакета копируется во внешний IP-заголовок VXLAN
+    # (vxlan-tos ifupdown2 для SVD не применяет, ставим явно)
+    post-up ip link set dev vxlan4094 type vxlan tos inherit
 
 auto VRF-CL1
 iface VRF-CL1

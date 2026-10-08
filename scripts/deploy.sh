@@ -13,7 +13,7 @@ NODES=("$@"); [[ ${#NODES[@]} -eq 0 ]] && NODES=("${SWITCHES[@]}")
 deploy_one() {
   local n=$1 host="clab-${LAB}-$1"
   sshpass -p "$PASS" scp "${SSH_OPTS[@]}" \
-    configs/"$n"/interfaces configs/"$n"/frr.conf configs/"$n"/daemons \
+    configs/"$n"/interfaces configs/"$n"/frr.conf configs/"$n"/daemons configs/common/fabric-qos.sh \
     "$USER@$host:/tmp/"
   sshpass -p "$PASS" ssh "${SSH_OPTS[@]}" "$USER@$host" "sudo -n bash -s" <<'REMOTE'
 set -e
@@ -25,6 +25,7 @@ systemctl disable --now nvued.service nvued.socket >/dev/null 2>&1 || true
 
 # Применяем. Повторный деплой — инкрементальный: ifreload + frr-reload без рестарта демонов
 daemons_changed=1; cmp -s /tmp/daemons /etc/frr/daemons && daemons_changed=0
+install -m 755 /tmp/fabric-qos.sh /usr/local/sbin/fabric-qos.sh
 install -m 644 /tmp/interfaces /etc/network/interfaces
 install -m 640 -o frr -g frr /tmp/daemons /etc/frr/daemons
 install -m 640 -o frr -g frr /tmp/frr.conf /etc/frr/frr.conf

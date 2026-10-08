@@ -19,24 +19,28 @@ iface eth0 inet dhcp
 
 auto swp1
 iface swp1
+    post-up /usr/local/sbin/fabric-qos.sh $IFACE
     alias to leaf-1:swp1
     address 10.0.1.0/31
     mtu 9216
 
 auto swp2
 iface swp2
+    post-up /usr/local/sbin/fabric-qos.sh $IFACE
     alias to leaf-2:swp1
     address 10.0.1.2/31
     mtu 9216
 
 auto swp3
 iface swp3
+    post-up /usr/local/sbin/fabric-qos.sh $IFACE
     alias to leaf-3:swp1
     address 10.0.1.4/31
     mtu 9216
 
 auto swp4
 iface swp4
+    post-up /usr/local/sbin/fabric-qos.sh $IFACE
     alias to leaf-4:swp1
     address 10.0.1.6/31
     mtu 9216
