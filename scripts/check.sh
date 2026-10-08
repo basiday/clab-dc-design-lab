@@ -36,7 +36,11 @@ wait_ready() {
     for n in "${LEAVES[@]}"; do
       sw "$n" "ip -d link show" | grep 'protodown on' >/dev/null && busy+=("$n")
     done
-    [[ ${#busy[@]} -eq 0 ]] && { printf '  фабрика готова (%d с)\n' "$t"; return 0; }
+    if [[ ${#busy[@]} -eq 0 ]]; then
+      # protodown только что снят: даём EVPN разослать маршруты, LACP — договориться
+      (( t > 0 )) && sleep 15
+      printf '  фабрика готова (%d с)                    \n' "$t"; return 0
+    fi
     (( t >= READY_TIMEOUT )) && { printf '  \e[33mprotodown не снят за %d с: %s\e[0m\n' "$t" "${busy[*]}"; return 1; }
     printf '  protodown: %s — ждём (%d/%d с)\r' "${busy[*]}" "$t" "$READY_TIMEOUT"
     sleep 10; t=$((t + 10))
