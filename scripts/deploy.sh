@@ -25,6 +25,8 @@ systemctl disable --now nvued.service nvued.socket >/dev/null 2>&1 || true
 
 # Применяем. Повторный деплой — инкрементальный: ifreload + frr-reload без рестарта демонов
 daemons_changed=1; cmp -s /tmp/daemons /etc/frr/daemons && daemons_changed=0
+# clagd читает clagd-* параметры только при старте: ifreload их на работающем clagd не применит
+clag_changed=1; [ "$(grep clagd- /tmp/interfaces)" = "$(grep clagd- /etc/network/interfaces)" ] && clag_changed=0
 install -m 755 /tmp/fabric-qos.sh /usr/local/sbin/fabric-qos.sh
 install -m 644 /tmp/interfaces /etc/network/interfaces
 install -m 640 -o frr -g frr /tmp/daemons /etc/frr/daemons
@@ -35,6 +37,11 @@ if [ $daemons_changed = 1 ] || ! systemctl -q is-active frr; then
   systemctl restart frr
 else
   /usr/lib/frr/frr-reload.py --reload /etc/frr/frr.conf >/dev/null
+fi
+
+# рестарт clagd = заново init-delay (180 с), поэтому только при изменении clagd-* параметров
+if grep -q 'clagd-peer-ip' /etc/network/interfaces; then
+  if [ $clag_changed = 1 ] || ! systemctl -q is-active clagd; then systemctl restart clagd; fi
 fi
 REMOTE
   echo "==> ${n}: ok"

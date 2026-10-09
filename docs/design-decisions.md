@@ -32,6 +32,7 @@
 * **Оба spine — route reflector** (`route-reflector-client` на `OVERLAY`). Leaf держат по 2 EVPN-сессии вместо full mesh. При потере одного spine EVPN продолжает работать.
 * **Общий `bgp cluster-id 10.255.0.100`** у обоих RR. Маршрут, отражённый одним RR, второй отбросит по CLUSTER_LIST. Так нет лишних копий маршрутов, а надёжность остаётся: у каждого leaf сессии к обоим RR.
 * **Сессии overlay идут между loopback'ами** (`update-source lo`) и не зависят от конкретного линка.
+* **`ttl-security hops 3` (GTSM) на `OVERLAY`.** Из-за `local-as` FRR отправляет overlay-сессии с TTL 1 (`show bgp neighbor`: «Internal BGP neighbor may be up to 1 hops away»). В штатной работе это незаметно: loopback spine в одном хопе. Но через резервный путь peerlink → MLAG-сосед → spine пакет умирает на соседе, и EVPN-сессии MLAG-leaf без uplink'ов не поднимаются. Так было найдено тестом обрыва uplink'ов. `ebgp-multihop` FRR для таких соседей игнорирует. GTSM ставит TTL 255 и принимает пакеты не дальше 3 хопов, это ещё и защита от подделки сессий издалека. Настраивается на всех свитчах сразу: сторона с GTSM отвергает TTL 1 от стороны без него.
 * **Типы маршрутов:**
   * Type-2 (MAC/IP) — L2 stretch и host-маршруты для symmetric IRB;
   * Type-3 (IMET) — head-end replication для BUM, без multicast в underlay;
@@ -80,7 +81,8 @@
 Детали MLAG в лабе:
 
 * `clagd-peer-ip linklocal` — сессия clagd идёт по peerlink.
-* `clagd-backup-ip` — loopback соседа. Backup-канал идёт через фабрику и переживает обрыв peerlink, роли при этом не делятся.
+* `clagd-backup-ip` — loopback соседа. Backup-канал идёт по маршрутизации и переживает обрыв peerlink, роли при этом не делятся.
+* **Резервный underlay через peerlink**: eBGP unnumbered `neighbor peerlink.4094 interface peer-group UNDERLAY`. Если MLAG-leaf потеряет оба uplink'а, он остаётся в фабрике через соседа: хосты на нём (в том числе single-homed) не изолируются, а anycast VTEP продолжает анонсироваться парой. Следствие: пока peerlink жив, трафик между loopback'ами пары (и backup-канал clagd) идёт кратчайшим путём через peerlink. При обрыве peerlink BGP-сессия падает (BFD ~0,9 с), и маршрут к соседу переходит на spine.
 * `clagd-priority` 1000/2000: leaf-3 — primary.
 * `clagd-vxlan-anycast-ip 10.255.2.34` — общий VTEP пары, MAC и Type-2/3 анонсируются от него.
 * `hwaddress = clagd-sys-mac` на L3VNI SVI: у пары один RMAC. Трафик, пришедший на любой leaf пары по anycast VTEP, обрабатывается одинаково.

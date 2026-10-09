@@ -32,7 +32,7 @@ Overlay (iBGP EVPN) работает в общем AS **65000**: сессии pe
 | spine-2:swp2 | leaf-2:swp2 | 10.0.2.2/31 | 9216 | underlay |
 | spine-2:swp3 | leaf-3:swp2 | 10.0.2.4/31 | 9216 | underlay |
 | spine-2:swp4 | leaf-4:swp2 | 10.0.2.6/31 | 9216 | underlay |
-| leaf-3:swp10, swp11 | leaf-4:swp10, swp11 | bond `peerlink`, link-local | 9216 | MLAG peerlink |
+| leaf-3:swp10, swp11 | leaf-4:swp10, swp11 | bond `peerlink`, link-local | 9216 | MLAG peerlink; на `peerlink.4094` резервная eBGP-сессия underlay (unnumbered) |
 | leaf-1:swp6.101 | bgw:eth1.101 | 172.16.1.0/31 | 1500 | border, VRF-CL1 ↔ INET-CL1 |
 | leaf-1:swp6.102 | bgw:eth1.102 | 172.16.2.0/31 | 1500 | border, VRF-CL2 ↔ INET-CL2 |
 | leaf-1:swp3 | cl1-h1:eth1 | VLAN 10 (trunk) | 9000 | хост |
@@ -97,7 +97,7 @@ Overlay (iBGP EVPN) работает в общем AS **65000**: сессии pe
 | Идентификатор | ESI `03:44:38:39:ff:00:01:00:00:01` (type 3: `es-sys-mac 44:38:39:ff:00:01` + `es-id 1`) | `clagd-sys-mac 44:38:39:ff:01:34` |
 | LACP system ID | `es-sys-mac`, общий у пары | `clagd-sys-mac`, общий у пары |
 | VTEP | у каждого leaf свой (10.255.1.1, 10.255.1.2) | общий anycast 10.255.2.34 |
-| Связь между leaf | только через фабрику (Type-1/4) | peerlink (swp10+swp11) + backup через фабрику (loopback соседа) |
+| Связь между leaf | только через фабрику (Type-1/4) | peerlink (swp10+swp11) с резервной eBGP-сессией underlay + backup clagd на loopback соседа |
 | DF / роль | DF по preference: leaf-1 50000 (**DF**), leaf-2 10000 | priority: leaf-3 1000 (**primary**), leaf-4 2000 |
 | Uplink tracking | `evpn mh uplink` на swp1/swp2 | clagd |
 | Старт | `startup-delay` 180 с (ES в protodown) | `init-delay` 180 с (bond и vxlan в protodown) |

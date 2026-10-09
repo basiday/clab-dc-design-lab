@@ -157,6 +157,7 @@ wait_ready || FAILED=$((FAILED + 1))
 section "Underlay: eBGP + BFD + ECMP"
 for n in "${SPINES[@]}"; do check "$n: 4 eBGP-сессии к leaf" bgp_established "$n" default ipv4Unicast 4; done
 for n in "${LEAVES[@]}"; do check "$n: eBGP к обоим spine"  bgp_established "$n" default ipv4Unicast 2; done
+for n in leaf-3 leaf-4; do check "$n: резервный eBGP через peerlink (MLAG)" bgp_established "$n" default ipv4Unicast 3; done
 for n in "${SPINES[@]}"; do check "$n: BFD Up к 4 leaf"     bfd_up "$n" 4; done
 for n in "${LEAVES[@]}"; do check "$n: BFD Up к 2 spine"    bfd_up "$n" 2; done
 check "leaf-1: ECMP до VTEP leaf-3 (10.255.1.3) через 2 spine" ecmp leaf-1 10.255.1.3/32 2

@@ -8,7 +8,7 @@
 * **Border** совмещён с leaf-1: eBGP в каждом VRF к внешнему маршрутизатору `bgw`, default уходит в фабрику как Type-5.
 * Low-latency сегмент: **jumbo MTU**, **DSCP/CoS**, приоритетные очереди **Linux TC**.
 * **OOB-управление** через VRF `mgmt`.
-* Автоматизация: развёртывание с нуля, 80 проверок PASS/FAIL, graceful shutdown leaf с замером потерь.
+* Автоматизация: развёртывание с нуля, 82 проверки PASS/FAIL, graceful shutdown leaf с замером потерь.
 
 Маршрутизацию делает FRR. NVUE отключён, конфигурация — чистые `frr.conf` и `/etc/network/interfaces` (ifupdown2).
 
@@ -35,7 +35,7 @@ scripts/down.sh                # снести лабу
 | Border / Gateway | leaf-1 ↔ bgw, eBGP в каждом VRF, фильтры на вход и выход, default уходит как Type-5 | default на всех leaf через leaf-1, ping внешнего префикса из каждого VRF |
 | ≥ 6 хостов | 8 хостов, по 4 на клиента | ping в обоих VRF |
 | EVPN Multihoming all-active | cl1-h2 → leaf-1 + leaf-2, ESI type 3, DF по preference | peer по ES, ровно один DF, LACP в одном агрегаторе |
-| MLAG | cl1-h4 → leaf-3 + leaf-4, clagd, anycast VTEP 10.255.2.34 | peer alive, bond dual-connected, backup через фабрику |
+| MLAG | cl1-h4 → leaf-3 + leaf-4, clagd, anycast VTEP 10.255.2.34, резервный underlay через peerlink | peer alive, bond dual-connected, backup на loopback, eBGP через peerlink |
 | 2 VRF с пересекающимися подсетями | VRF-CL1 и VRF-CL2: в обоих 10.10.10.0/24 и 10.10.20.0/24 | изоляция; один IP в двух VRF → MAC разных хостов |
 | DSCP/CoS, Linux TC | хост: DSCP → priority → PCP, `prio`; фабрика: `prio` на 4 полосы + `flower` по DSCP, `tos inherit` в VXLAN | PCP 5 на входе в leaf, DSCP EF во внешнем заголовке на spine, счётчики EF-очереди |
 | MTU 9000+ на транзитных линках | 9216 на фабрике и peerlink, 9000 в overlay и в jumbo-сегменте | MTU транзитных портов, ping 8972 B с DF через VXLAN |

@@ -54,6 +54,7 @@ scripts/check.sh
 3. Устанавливает `interfaces`, `frr.conf`, `daemons` и `/usr/local/sbin/fabric-qos.sh`.
 4. Выполняет `ifreload -a`.
 5. Если `daemons` не изменился, выполняет `frr-reload.py` (инкрементально, без рестарта). Иначе рестартует FRR.
+6. На MLAG-парах рестартует clagd, если изменились параметры `clagd-*`: clagd читает их только при старте, а `ifreload` их на работающем демоне не применяет. Рестарт clagd снова запускает `init-delay` (180 с).
 
 ### Изменение конфигурации
 
@@ -74,14 +75,14 @@ scripts/down.sh                 # destroy --cleanup: контейнеры, ли�
 ## 4. Проверки
 
 ```bash
-scripts/check.sh        # 80 проверок PASS/FAIL; код возврата = число FAIL
+scripts/check.sh        # 82 проверки PASS/FAIL; код возврата = число FAIL
 scripts/check.sh -v     # то же, с выводом команд у проваленных проверок
 ```
 
 | Секция | Что проверяется |
 |---|---|
 | Готовность | на leaf нет портов в protodown (ждёт до 300 с) |
-| Underlay | eBGP spine↔leaf, BFD Up (`ptmctl -b`), ECMP до VTEP и anycast VTEP |
+| Underlay | eBGP spine↔leaf, резервная eBGP через peerlink (leaf-3/4), BFD Up (`ptmctl -b`), ECMP до VTEP и anycast VTEP |
 | Overlay | EVPN к обоим RR, маршруты Type-1/2/3/4/5 |
 | Symmetric IRB | L3VNI 4001/4002 Up и привязаны к VRF, RMAC удалённых VTEP |
 | Multihoming | ES-1: peer, ровно один DF, LACP одним агрегатором; MLAG: peer, dual, backup через фабрику |
@@ -138,6 +139,9 @@ cat /proc/net/bonding/bond0                                            # вну�
 |---|---|---|
 | После деплоя или рестарта хост на bond не отвечает | `ip -d link show swp4 \| grep protodown`, `show evpn`, `clagctl` | Идёт `startup-delay` / `init-delay` (180 с). Это норма, ждём |
 | Нет eBGP spine↔leaf | `show bgp summary`, `ip -br addr`, `ptmctl -b` | Адрес /31 или `remote-as`, порт down, MTU |
+| EVPN-сессии не поднимаются в обход прямого линка (например, через peerlink) | `show bgp neighbor 10.255.0.1` (строка «may be up to N hops away»), `nstat -az IpInHdrErrors` на транзитном узле | Нет `ttl-security hops` на `OVERLAY`: сессия уходит с TTL 1 и умирает на первом транзитном узле |
+| Нет eBGP через peerlink (leaf-3/4) | `show bgp summary` (сосед `peerlink.4094`), `ip -6 addr show peerlink.4094` | Peerlink down, нет IPv6 link-local на `peerlink.4094` |
+| Изменил `clagd-*`, но clagctl показывает старое | `clagctl`, `systemctl status clagd` | clagd не перезапущен (деплой не через `deploy.sh`) |
 | Нет EVPN-сессий | `show bgp l2vpn evpn summary`, `ping -I 10.255.1.x 10.255.0.1` | Loopback не анонсирован (`PL-LOOPBACKS`), нет `update-source lo` |
 | Нет Type-2/3 от соседа | `show evpn vni`, `show bgp l2vpn evpn route type multicast` | Нет `advertise-all-vni`, VNI не в `bridge-vlan-vni-map`, RT не совпадает |
 | L2 работает, L3 между подсетями нет | `show evpn vni 4001`, `show evpn rmac vni all`, `show ip route vrf X` | Нет `vrf X / vni N`, нет SVI L3VNI или VLAN 400x в бридже, RT L3VNI |
@@ -212,7 +216,25 @@ scripts/test-drain.sh leaf-3 hard        # для сравнения: порты
 * Single-homed хосты на выводимом leaf (например, cl1-h1 и cl2-h1 на leaf-1) теряют связность. Для них нужен multihoming.
 * Drain leaf-1 отключает внешний выход (bgw) обоим клиентам: border один.
 
-## 7. Особенности лабы
+## 7. Отказ всех uplink'ов на MLAG-leaf
+
+Проверка резервного underlay через peerlink: leaf-3 теряет оба uplink'а, но его хосты (в том числе single-homed cl1-h3 и cl2-h3) остаются в фабрике через leaf-4.
+
+```bash
+# обрыв (carrier снаружи VM + порт внутри)
+docker exec clab-evpn-leaf-3 sh -c 'ip link set eth1 down; ip link set eth2 down'
+ssh cumulus@clab-evpn-leaf-3 'sudo ip link set swp1 down; sudo ip link set swp2 down'
+# через ~20 с
+ssh cumulus@clab-evpn-leaf-3 "sudo vtysh -c 'show bgp summary'"            # spine Active, leaf-4(peerlink.4094) Established
+ssh cumulus@clab-evpn-leaf-3 "sudo vtysh -c 'show bgp l2vpn evpn summary'" # EVPN к RR Established (через leaf-4)
+docker exec clab-evpn-cl1-h3 ping -c3 10.10.20.11                         # проходит
+docker exec clab-evpn-cl1-h3 ping -c3 1.1.1.1                             # проходит
+# восстановление
+ssh cumulus@clab-evpn-leaf-3 'sudo ip link set swp1 up; sudo ip link set swp2 up'
+docker exec clab-evpn-leaf-3 sh -c 'ip link set eth1 up; ip link set eth2 up'
+```
+
+## 8. Особенности лабы
 
 * **vrnetlab:**
   * `ip link set swpN down` в VM не роняет линк у соседа: снаружи остаётся живой veth;

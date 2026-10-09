@@ -8,6 +8,7 @@ topology:
   kinds:
     nvidia_cumulusvx:
       image: vrnetlab/nvidia_cumulus-vx:5.12.1
+      env: {QEMU_MEMORY: 2048}
     linux:
       image: nicolaka/netshoot:v0.13
 
